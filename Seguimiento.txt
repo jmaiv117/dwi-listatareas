@@ -1,0 +1,40 @@
+--- > MongoDB < ---
+Crear cuenta de Cloud.MongoDB
+Crear un nuevo Cluster (Servicio) gratuito
+Dar de alta usuarios para dar acceso
+Dar de alta direcciones ip autorizadas
+Conseguir el string de conexión
+Testear string de conexión
+
+
+--- > Proyecto < ---
+Creada la carpeta del proyecto "dwi-listatareas"
+Asignado un entorno virtual 'venv'
+	"python -m venv"
+Activar el entorno virtual
+	"venv/scripts/activate"
+Instalar las librerias del backend necesarias (Django, FastAPI)
+	"pip install django fastapi"
+Obtener la lista de requirements
+	"pip freeze > requirements.txt"
+Crear los archivos de README.md y .gitignore
+	añadir la carpeta del venv al .gitignore
+Inicializar ambos servicios Django y FastAPI
+	"django-admin startproject listatareas"
+	FastAPI se inicializa a través de un archivo python "fastapi.py"
+	ejecutar django
+	migrar sqlite interno de django
+Adicion al .gitignore siendo la db.sqlite3 y el __pycache__ (proyect y app)
+
+
+--- > Git y Github < ---
+Inicializacion de git
+	"git init" <- crea un registro de cambios local
+	"git add ." <- añadimos todos los elementos (excluye los .gitignore)
+	"git commit -m 'Primer commit de proyecto todos los elementos han sido generados'" <- guarda localmente la nueva versión
+	Creamos el repositorio en la nube (github) llamado "dwi-listatareas"
+	Añadimos el origen remoto
+		"git remote add origin https://github.com/JoseStalker117/dwi-listatareas.git"
+	Pusheamos la rama creada (se genero como master)
+		"git push -u origin master" <- se sube la versión al repositorio
+	Añadimos colaboradores, en este caso tu como "Dany77103"
