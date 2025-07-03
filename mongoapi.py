@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from bson import ObjectId
+import pytz
 
 # Cargar variables de entorno
 load_dotenv("config.env")
@@ -38,6 +39,7 @@ class ActividadBase(BaseModel):
     Prioridad: str
     # Fecha: datetime
     Fin: datetime # El usuario define la fecha de finalización
+    Estatus: bool = False
 
 # --- Modelo de Creación ---
 class ActividadCreate(ActividadBase):
@@ -87,6 +89,8 @@ async def obtener_actividades():
                 documento["Fecha"] = datetime.fromisoformat(documento["Fecha"])
             if isinstance(documento["Fin"], str):
                 documento["Fin"] = datetime.fromisoformat(documento["Fin"])
+            if "Estatus" not in documento:
+                documento["Estatus"] = False
             actividades.append(Actividad(**documento))
         return actividades
     except Exception as e:
@@ -104,6 +108,8 @@ async def obtener_actividad(actividad_id: str):
             documento["Fecha"] = datetime.fromisoformat(documento["Fecha"])
         if isinstance(documento["Fin"], str):
             documento["Fin"] = datetime.fromisoformat(documento["Fin"])
+        if "Estatus" not in documento:
+            documento["Estatus"] = False
         return Actividad(**documento)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener la actividad: {str(e)}")
@@ -113,7 +119,9 @@ async def obtener_actividad(actividad_id: str):
 async def crear_actividad(actividad: ActividadCreate):
     try:
         documento = actividad.dict()
-        documento["Fecha"] = datetime.now()
+        tz = pytz.timezone("America/Monterrey")
+        documento["Fecha"] = datetime.now(tz)
+        documento["Estatus"] = False  # Siempre por defecto en False
         resultado = await database.actividades.insert_one(documento)
         documento["_id"] = str(resultado.inserted_id)
         return Actividad(**documento)
@@ -137,6 +145,8 @@ async def actualizar_actividad(actividad_id: str, actividad: ActividadCreate):
             documento_actualizado["Fecha"] = datetime.fromisoformat(documento_actualizado["Fecha"])
         if isinstance(documento_actualizado["Fin"], str):
             documento_actualizado["Fin"] = datetime.fromisoformat(documento_actualizado["Fin"])
+        if "Estatus" not in documento_actualizado:
+            documento_actualizado["Estatus"] = False
         return Actividad(**documento_actualizado)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al actualizar la actividad: {str(e)}")
