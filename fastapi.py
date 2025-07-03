@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 # Cargar variables de entorno
 load_dotenv()
 
-app = FastAPI(title="API MongoDB Transacciones", version="1.0.0")
+app = FastAPI(title="API MongoDB", version="1.0.0")
 
 # Configuración de MongoDB
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "transacciones_db")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "actividades")
 
 # Cliente de MongoDB
 client = None
