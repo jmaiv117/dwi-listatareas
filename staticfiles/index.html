@@ -25,6 +25,19 @@
         <label for="descriptionInput">Descripción</label>
         <textarea id="descriptionInput" placeholder="Descripción detallada..."></textarea>
       </div>
+      <div class="form-group">
+        <label for="priorityInput">Prioridad</label>
+        <select id="priorityInput" required>
+          <option value="Baja">Baja</option>
+          <option value="Media">Media</option>
+          <option value="Alta">Alta</option>
+          <option value="Urgente">Urgente</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="finInput">Fecha y hora de finalización</label>
+        <input type="datetime-local" id="finInput" required value="" />
+      </div>
       <button type="submit">Agregar</button>
     </form>
 
@@ -43,4 +56,5 @@
   </div>
 </body>
 <script src="{% static 'scripts.js' %}"></script>
+
 </html>

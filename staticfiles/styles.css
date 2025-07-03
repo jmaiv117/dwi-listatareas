@@ -2,12 +2,26 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background: #f4f4f4;
     display: flex;
     justify-content: center;
     align-items: flex-start;
     min-height: 100vh;
+    position: relative;
   }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    background: url('background.jpg') center center/cover no-repeat;
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
   .container {
     max-width: 800px;
     width: 100%;
@@ -88,4 +102,16 @@ body {
   button:active {
     color: #666;
     box-shadow: inset 4px 4px 12px #c5c5c5, inset -4px -4px 12px #ffffff;
+  }
+  .task-green {
+    border-left: 6px solid #2ecc40;
+    background: #eaffea;
+  }
+  .task-yellow {
+    border-left: 6px solid #ffdc00;
+    background: #fffbe6;
+  }
+  .task-red {
+    border-left: 6px solid #ff4136;
+    background: #ffeaea;
   }
