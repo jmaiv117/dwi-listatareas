@@ -119,7 +119,7 @@ async def obtener_actividad(actividad_id: str):
 async def crear_actividad(actividad: ActividadCreate):
     try:
         documento = actividad.dict()
-        tz = pytz.timezone("America/Monterrey")
+        tz = pytz.timezone("America/Mexico_City")
         documento["Fecha"] = datetime.now(tz)
         documento["Estatus"] = False  # Siempre por defecto en False
         resultado = await database.actividades.insert_one(documento)
