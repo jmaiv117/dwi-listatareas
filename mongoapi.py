@@ -162,6 +162,31 @@ async def eliminar_actividad(actividad_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al eliminar la actividad: {str(e)}")
 
+# Alternar el estado de una actividad
+@app.patch("/actividades/{actividad_id}/alternar_estado", response_model=Actividad)
+async def alternar_estado_actividad(actividad_id: str):
+    try:
+        documento = await database.actividades.find_one({"_id": ObjectId(actividad_id)})
+        if not documento:
+            raise HTTPException(status_code=404, detail="Actividad no encontrada")
+        estado_actual = documento.get("Estatus", False)
+        nuevo_estado = not estado_actual
+        await database.actividades.update_one(
+            {"_id": ObjectId(actividad_id)},
+            {"$set": {"Estatus": nuevo_estado}}
+        )
+        documento_actualizado = await database.actividades.find_one({"_id": ObjectId(actividad_id)})
+        documento_actualizado["_id"] = str(documento_actualizado["_id"])
+        if isinstance(documento_actualizado["Fecha"], str):
+            documento_actualizado["Fecha"] = datetime.fromisoformat(documento_actualizado["Fecha"])
+        if isinstance(documento_actualizado["Fin"], str):
+            documento_actualizado["Fin"] = datetime.fromisoformat(documento_actualizado["Fin"])
+        if "Estatus" not in documento_actualizado:
+            documento_actualizado["Estatus"] = False
+        return Actividad(**documento_actualizado)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al alternar el estado: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
