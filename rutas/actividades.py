@@ -1,29 +1,46 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 from typing import List, Dict, Union, Optional
+from dotenv import load_dotenv
 from datetime import datetime
 from bson import ObjectId
 import bcrypt
 import base64
 import jwt
 import os
+from cryptography.fernet import Fernet, InvalidToken
 
+load_dotenv("config.env")
 router = APIRouter(prefix="/actividades", tags=["actividades"])
 
 # --- Utilidades de Encriptación ---
 class CryptoUtils:
     @staticmethod
+    def get_fernet():
+        key = os.getenv("FERNET_KEY", "clave_generada")
+        if not key:
+            raise Exception("FERNET_KEY no configurada en variables de entorno")
+        return Fernet(key.encode() if isinstance(key, str) else key)
+
+    @staticmethod
     def encrypt_data(data: str) -> str:
-        """Encripta datos sensibles usando bcrypt"""
+        """Encripta datos sensibles usando Fernet"""
         if not data:
             return data
-        # Convertir a bytes y encriptar
-        data_bytes = data.encode('utf-8')
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(data_bytes, salt)
-        # Codificar en base64 para almacenamiento
-        return base64.b64encode(hashed).decode('utf-8')
-    
+        f = CryptoUtils.get_fernet()
+        return f.encrypt(data.encode('utf-8')).decode('utf-8')
+
+    @staticmethod
+    def decrypt_data(data: str) -> str:
+        """Desencripta datos sensibles usando Fernet"""
+        if not data:
+            return data
+        f = CryptoUtils.get_fernet()
+        try:
+            return f.decrypt(data.encode('utf-8')).decode('utf-8')
+        except (InvalidToken, Exception):
+            return data  # Si no se puede desencriptar, retorna el valor original
+
     @staticmethod
     def encrypt_field_if_sensitive(field_name: str, value: str) -> str:
         """Encripta campos sensibles específicos"""
@@ -48,6 +65,23 @@ class CryptoUtils:
                     encrypted_item[key] = value
             encrypted_list.append(encrypted_item)
         return encrypted_list
+
+    @staticmethod
+    def decrypt_mailto_list(mailto_list: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """Desencripta emails en la lista mailto"""
+        if not mailto_list:
+            return mailto_list
+        
+        decrypted_list = []
+        for item in mailto_list:
+            decrypted_item = {}
+            for key, value in item.items():
+                if key in ('to', 'cc', 'bcc') and value:
+                    decrypted_item[key] = CryptoUtils.decrypt_data(value)
+                else:
+                    decrypted_item[key] = value
+            decrypted_list.append(decrypted_item)
+        return decrypted_list
 
 # --- Modelo Base ---
 class ActividadBase(BaseModel):
@@ -102,6 +136,16 @@ class ActividadBase(BaseModel):
         if "mailto" in data and data["mailto"]:
             data["mailto"] = CryptoUtils.encrypt_mailto_list(data["mailto"])
         
+        return data
+
+    @classmethod
+    def decrypt_sensitive_data(cls, data):
+        """Desencripta datos sensibles para mostrar al usuario"""
+        data = dict(data)
+        if "Descripcion" in data and data["Descripcion"]:
+            data["Descripcion"] = CryptoUtils.decrypt_data(data["Descripcion"])
+        if "mailto" in data and data["mailto"]:
+            data["mailto"] = CryptoUtils.decrypt_mailto_list(data["mailto"])
         return data
 
 # --- Modelo de Creación ---
@@ -167,6 +211,8 @@ async def obtener_actividades(current_user = Depends(get_current_user), db = Dep
             documento["_id"] = str(documento["_id"])
             # Normalizar campos
             doc_norm = ActividadBase.normalize(documento)
+            # Desencriptar campos sensibles
+            doc_norm = ActividadBase.decrypt_sensitive_data(doc_norm)
             actividades.append(Actividad(**{**doc_norm, "_id": documento["_id"], "Fecha": doc_norm.get("Fecha", datetime.now()), "usuario_id": documento.get("usuario_id")}))
         return actividades
     except Exception as e:
@@ -181,6 +227,7 @@ async def obtener_actividad(actividad_id: str, current_user = Depends(get_curren
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
         documento["_id"] = str(documento["_id"])
         doc_norm = ActividadBase.normalize(documento)
+        doc_norm = ActividadBase.decrypt_sensitive_data(doc_norm)
         return Actividad(**{**doc_norm, "_id": documento["_id"], "Fecha": doc_norm.get("Fecha", datetime.now()), "usuario_id": documento.get("usuario_id")})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener la actividad: {str(e)}")

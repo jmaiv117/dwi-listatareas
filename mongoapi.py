@@ -15,7 +15,7 @@ load_dotenv("config.env")
 
 # Configuración de MongoDB
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "actividades")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "listas")
 
 # Cliente de MongoDB
 client = None
