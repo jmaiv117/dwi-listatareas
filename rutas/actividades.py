@@ -367,15 +367,21 @@ async def reordenar_prioridad(current_user = Depends(get_current_user), db = Dep
         actividades_sin_prioridad = [a for a in actividades if a.get("Prioridad") is None]
         # Ordenar por prioridad ascendente
         actividades_con_prioridad.sort(key=lambda x: x.get("Prioridad", 99999))
-        # Reasignar prioridades consecutivas a partir de 1 solo a las que tienen prioridad
+        # Reasignar prioridades consecutivas a partir de 1, manteniendo duplicados
         nueva_prioridad = 1
+        prioridad_anterior = None
         for doc in actividades_con_prioridad:
+            prioridad_actual = doc.get("Prioridad")
+            # Si la prioridad actual es diferente a la anterior, incrementar el contador
+            if prioridad_actual != prioridad_anterior:
+                nueva_prioridad += 1
+            # Asignar la nueva prioridad (mantener la misma si es duplicado)
             await db.actividades.update_one(
                 {"_id": ObjectId(doc["_id"]), "usuario_id": current_user["user_id"]},
-                {"$set": {"Prioridad": nueva_prioridad}}
+                {"$set": {"Prioridad": nueva_prioridad - 1}}
             )
-            doc["Prioridad"] = nueva_prioridad
-            nueva_prioridad += 1
+            doc["Prioridad"] = nueva_prioridad - 1
+            prioridad_anterior = prioridad_actual
         # Las de prioridad nula permanecen igual
         # Unir ambas listas para la respuesta
         actividades_final = actividades_con_prioridad + actividades_sin_prioridad
