@@ -1,5 +1,6 @@
 /venv
 __pycache__
 /listatareas/__pycache__
-
+/static
 db.sqlite3
+config.env
