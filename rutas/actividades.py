@@ -127,23 +127,22 @@ class ActividadBase(BaseModel):
     def encrypt_sensitive_data(cls, data):
         """Encripta datos sensibles antes de guardar en la base de datos"""
         data = dict(data)
-        
-        # Encriptar descripción si existe
-        if "Descripcion" in data and data["Descripcion"]:
-            data["Descripcion"] = CryptoUtils.encrypt_data(data["Descripcion"])
-        
+        # Encriptar campos sensibles si existen
+        for field in ["Descripcion", "Categoria", "Nombre"]:
+            if field in data and data[field]:
+                data[field] = CryptoUtils.encrypt_data(data[field])
         # Encriptar emails en mailto
         if "mailto" in data and data["mailto"]:
             data["mailto"] = CryptoUtils.encrypt_mailto_list(data["mailto"])
-        
         return data
 
     @classmethod
     def decrypt_sensitive_data(cls, data):
         """Desencripta datos sensibles para mostrar al usuario"""
         data = dict(data)
-        if "Descripcion" in data and data["Descripcion"]:
-            data["Descripcion"] = CryptoUtils.decrypt_data(data["Descripcion"])
+        for field in ["Descripcion", "Categoria", "Nombre"]:
+            if field in data and data[field]:
+                data[field] = CryptoUtils.decrypt_data(data[field])
         if "mailto" in data and data["mailto"]:
             data["mailto"] = CryptoUtils.decrypt_mailto_list(data["mailto"])
         return data
@@ -349,3 +348,39 @@ async def verificar_encriptacion(actividad_id: str, current_user = Depends(get_c
         return encryption_status
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al verificar encriptación: {str(e)}")
+
+@router.post("/reordenar_prioridad")
+async def reordenar_prioridad(current_user = Depends(get_current_user), db = Depends(get_database)):
+    try:
+        # Seleccionar actividades del usuario excluyendo estatus 'Finalizado' y 'Cerrado'
+        filtro = {
+            "usuario_id": current_user["user_id"],
+            "Estatus": {"$nin": ["Finalizado", "Cerrado"]}
+        }
+        actividades = []
+        cursor = db.actividades.find(filtro)
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            actividades.append(doc)
+        # Separar actividades con prioridad numérica y nula
+        actividades_con_prioridad = [a for a in actividades if a.get("Prioridad") is not None]
+        actividades_sin_prioridad = [a for a in actividades if a.get("Prioridad") is None]
+        # Ordenar por prioridad ascendente
+        actividades_con_prioridad.sort(key=lambda x: x.get("Prioridad", 99999))
+        # Reasignar prioridades consecutivas a partir de 1 solo a las que tienen prioridad
+        nueva_prioridad = 1
+        for doc in actividades_con_prioridad:
+            await db.actividades.update_one(
+                {"_id": ObjectId(doc["_id"]), "usuario_id": current_user["user_id"]},
+                {"$set": {"Prioridad": nueva_prioridad}}
+            )
+            doc["Prioridad"] = nueva_prioridad
+            nueva_prioridad += 1
+        # Las de prioridad nula permanecen igual
+        # Unir ambas listas para la respuesta
+        actividades_final = actividades_con_prioridad + actividades_sin_prioridad
+        # Devolver la lista reorganizada (opcional: desencriptar campos)
+        actividades_final = [ActividadBase.decrypt_sensitive_data(ActividadBase.normalize(doc)) for doc in actividades_final]
+        return {"message": "Prioridades reorganizadas exitosamente (nulos conservados)", "actividades": actividades_final}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al reorganizar prioridades: {str(e)}")
